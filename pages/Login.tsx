@@ -7,120 +7,121 @@ interface LoginProps {
   users: AuthUser[];
 }
 
-type AuthView = 'login' | 'admin';
-
 const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
-  const [view, setView] = useState<AuthView>('login');
-  const [formData, setFormData] = useState({
-    identifier: '',
-    password: '',
-  });
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleAction = () => {
+  const handleLogin = () => {
     setError('');
     
-    // Find user in the users list
-    const foundUser = users.find(u => 
-      (u.username === formData.identifier || (u as any).mobile === formData.identifier) && 
-      (u as any).password === formData.password
-    );
-
-    if (foundUser) {
-      if (view === 'admin' && foundUser.role !== 'Admin') {
-        setError('This portal is restricted to Administrators.');
-        return;
+    if (isAdminMode) {
+      if (identifier === 'arvin_hanif' && password === 'arvin_hanif') {
+        const adminUser: AuthUser = {
+          id: 'admin-01',
+          role: 'Admin',
+          name: 'Arvin Hanif',
+          username: 'arvin_hanif',
+          mobile: '01XXXXXXXXX',
+          email: 'arvin@warrick.io'
+        };
+        onLogin(adminUser);
+      } else {
+        setError('INVALID ADMIN CREDENTIALS');
       }
-      onLogin(foundUser);
     } else {
-      setError('Access Denied. Invalid credentials.');
+      const foundUser = users.find(u => 
+        (u.username === identifier || u.mobile === identifier || u.email === identifier) && 
+        (u as any).password === password
+      );
+      
+      if (foundUser) {
+        onLogin(foundUser);
+      } else {
+        setError('INVALID CREDENTIALS');
+      }
     }
   };
 
-  const renderInputs = () => {
-    return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-ios-gray ml-4 uppercase tracking-[0.2em] block mb-1">
-            {view === 'admin' ? 'Admin ID' : 'Email or Mobile'}
-          </label>
-          <input
-            type="text"
-            className="w-full bg-ios-bg border-none rounded-full px-8 py-4 focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all font-black text-gray-800 placeholder:text-gray-400/30 text-sm shadow-sm"
-            value={formData.identifier}
-            onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-ios-gray ml-4 uppercase tracking-[0.2em] block mb-1">Password</label>
-          <input
-            type="password"
-            className="w-full bg-ios-bg border-none rounded-full px-8 py-4 focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all font-black text-gray-800 placeholder:text-gray-400/30 text-sm shadow-sm"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          />
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-ios-bg p-6 font-sans">
-      {/* Brand Header */}
-      <div className="text-center mb-10 animate-in fade-in slide-in-from-top-4 duration-1000">
-        <h1 className="text-[52px] font-black tracking-tighter text-[#1A237E] leading-none mb-3">
-          WARRICK<span className="text-[#6200EA]">.</span>
-        </h1>
-        <div className="flex flex-col items-center">
-           <div className="w-12 h-[1.5px] bg-blue-500/40 rounded-full mb-3"></div>
-           <div className="bg-white/90 ios-blur border border-white px-5 py-2 rounded-full shadow-sm">
-             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">
-               POWERED BY ARVIN
-             </p>
-           </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#F0F2F5] dark:bg-[#0F1012] font-sans">
+      
+      {/* Branding Header - Precise Matching */}
+      <div className="flex flex-col items-center mb-10 text-center">
+        <div className="relative mb-2">
+          <h1 className="text-[48px] font-black tracking-[-0.05em] text-[#2D364E] dark:text-white leading-none">
+            WARRICK<span className="text-[#6366F1]">.</span>
+          </h1>
+          <div className="w-10 h-[3px] bg-gradient-to-r from-blue-400 to-blue-600 rounded-full mx-auto mt-2"></div>
+        </div>
+        
+        <div className="bg-[#EBEEF2] dark:bg-white/5 px-5 py-1.5 rounded-full shadow-sm">
+          <p className="text-[9px] font-black text-[#8E9AAF] dark:text-gray-400 uppercase tracking-[0.25em]">
+            POWERED BY ARVIN
+          </p>
         </div>
       </div>
 
-      {/* Main Authentication Card */}
-      <div className="w-full max-w-[440px] bg-white rounded-[50px] p-10 md:p-12 shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff] border border-white/40 animate-in zoom-in-95 duration-500">
+      {/* Main Login Card */}
+      <div className="w-full max-w-[410px] p-10 space-y-9 bg-[#F0F2F5] dark:bg-[#1A1C1E] rounded-[54px] shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-none">
         
-        <div className="space-y-8">
-          {renderInputs()}
-
-          {error && (
-            <div className="bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest text-center py-3 rounded-full border border-red-100 animate-in shake duration-300">
-              {error}
-            </div>
-          )}
-
-          <button 
-            onClick={handleAction}
-            className="w-full py-5 rounded-full text-white font-black text-sm uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all bg-[#424242] hover:bg-black"
-          >
-            {view === 'admin' ? 'Authorize' : 'Sign In'}
-          </button>
-
-          {/* Navigation Options */}
-          <div className="flex flex-col items-center space-y-6 pt-4 border-t border-gray-100">
-            {view === 'login' ? (
-              <button 
-                onClick={() => { setView('admin'); setError(''); }}
-                className="bg-white px-10 py-3 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border border-gray-100 hover:text-black hover:border-black transition-all"
-              >
-                Admin Portal
-              </button>
-            ) : (
-              <div className="bg-ios-bg/40 p-1.5 rounded-full flex items-center border border-white shadow-sm">
-                <span className="text-[9px] font-bold text-gray-400 px-4 uppercase">Mistake?</span>
-                <button 
-                  onClick={() => { setView('login'); setError(''); }}
-                  className="bg-white text-blue-600 text-[9px] font-black px-6 py-2.5 rounded-full uppercase tracking-wider shadow-sm border border-blue-50 transition-all hover:bg-blue-600 hover:text-white"
-                >
-                  Back to Login
-                </button>
-              </div>
-            )}
+        <div className="space-y-5">
+          {/* Identity Input */}
+          <div className="sunken-well px-8 h-[62px] flex items-center shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff] dark:shadow-none">
+            <input
+              type="text"
+              placeholder={isAdminMode ? "Admin ID" : "Email or Mobile"}
+              className="bg-transparent w-full outline-none font-semibold text-[#8E9AAF] dark:text-white placeholder:text-[#A0AABF] text-[16px]"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+            />
           </div>
+
+          {/* Password Input */}
+          <div className="sunken-well px-8 h-[62px] flex items-center shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff] dark:shadow-none">
+            <input
+              type="password"
+              placeholder="Password"
+              className="bg-transparent w-full outline-none font-semibold text-[#8E9AAF] dark:text-white placeholder:text-[#A0AABF] text-[16px]"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Primary Action Button - White/Light Grey with Liquid Glass Effect */}
+        <button 
+          onClick={handleLogin}
+          className="relative overflow-hidden w-full h-[64px] rounded-[24px] bg-[#EBEEF2] text-[#2D364E] font-bold text-[18px] border-2 border-white shadow-[6px_6px_12px_#c2cad6,-6px_-6px_12px_#ffffff] active:shadow-inner active:scale-[0.98] transition-all flex items-center justify-center group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-black/5 pointer-events-none"></div>
+          <div className="absolute inset-0 shadow-[inset_0px_1px_2px_rgba(255,255,255,0.8)] pointer-events-none"></div>
+          <span className="relative z-10">{isAdminMode ? 'Admin Sign In' : 'Sign In'}</span>
+        </button>
+
+        {error && (
+          <p className="text-center text-[10px] font-black text-red-500 uppercase tracking-widest">
+            {error}
+          </p>
+        )}
+
+        {/* Separator Line */}
+        <div className="w-full h-[1px] bg-gray-200/50 dark:bg-white/5"></div>
+
+        {/* Bottom Navigation Section */}
+        <div className="flex flex-col items-center">
+          {/* Admin Portal Toggle - Liquid Glass Effect */}
+          <button 
+            onClick={() => {
+              setIsAdminMode(!isAdminMode);
+              setError('');
+            }}
+            className="relative overflow-hidden px-10 py-3 bg-[#EBEEF2] dark:bg-white/5 border border-white rounded-full text-[10px] font-black text-[#2D364E] dark:text-gray-400 uppercase tracking-[0.2em] shadow-sm hover:opacity-80 transition-opacity"
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none opacity-50"></div>
+            <span className="relative z-10">{isAdminMode ? 'USER PORTAL' : 'ADMIN PORTAL'}</span>
+          </button>
         </div>
       </div>
     </div>

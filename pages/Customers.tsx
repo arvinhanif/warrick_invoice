@@ -1,18 +1,19 @@
 
-import React, { useState, useMemo } from 'react';
-import { Customer } from '../types';
+import React, { useState, useMemo, useRef } from 'react';
+import { Customer, AuthUser } from '../types';
 
 interface CustomersProps {
   customers: Customer[];
   onAdd: (customer: Customer) => void;
   onUpdate: (customer: Customer) => void;
   onDelete: (id: string) => void;
+  globalSearchQuery?: string;
+  user?: AuthUser | null;
 }
 
-const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDelete }) => {
+const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDelete, globalSearchQuery = '', user }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
     name: '',
     phone: '',
@@ -20,11 +21,33 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDel
     email: ''
   });
 
+  const isAdmin = user?.role === 'Admin';
+
+  const filteredCustomers = useMemo(() => {
+    if (!globalSearchQuery) return customers;
+    const q = globalSearchQuery.toLowerCase().trim();
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.phone.replace(/\s/g, '').includes(q.replace(/\s/g, ''))
+    );
+  }, [customers, globalSearchQuery]);
+
   const handleAction = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustomer.name || !newCustomer.phone) return;
 
+    const phoneNormalized = newCustomer.phone.replace(/\s/g, '');
+    const duplicate = customers.find(c => 
+      c.phone.replace(/\s/g, '') === phoneNormalized && c.id !== editingId
+    );
+
+    if (duplicate) {
+      alert("Already Have Account");
+      return;
+    }
+
     if (editingId) {
+      if (!isAdmin) return;
       onUpdate({
         ...newCustomer,
         id: editingId,
@@ -54,6 +77,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDel
   };
 
   const handleEdit = (customer: Customer) => {
+    if (!isAdmin) return;
     setNewCustomer({
       name: customer.name,
       phone: customer.phone,
@@ -65,104 +89,200 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDel
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const filteredCustomers = useMemo(() => {
-    if (!searchQuery) return customers;
-    const query = searchQuery.replace(/\s/g, '');
-    return customers.filter(c => 
-      c.phone.replace(/\s/g, '').includes(query) || 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [customers, searchQuery]);
+  const exportSingleCustomer = (customer: Customer) => {
+    if (!isAdmin) return;
+    
+    const element = document.createElement('div');
+    element.style.padding = '60px';
+    element.style.fontFamily = 'Inter, sans-serif';
+    element.innerHTML = `
+      <div style="border: 2px solid #000; padding: 40px; background: #fff;">
+        <div style="margin-bottom: 40px; text-align: center;">
+          <h1 style="font-size: 28px; font-weight: 900; margin: 0; letter-spacing: -1px;">WARRICK CLIENT PROFILE</h1>
+          <p style="font-size: 10px; color: #666; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px;">Secure Data Export</p>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <label style="font-size: 10px; font-weight: 900; color: #999; text-transform: uppercase;">Full Name</label>
+          <div style="font-size: 22px; font-weight: 900; color: #000; margin-top: 5px; border-bottom: 1px solid #eee; padding-bottom: 10px;">${customer.name}</div>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <label style="font-size: 10px; font-weight: 900; color: #999; text-transform: uppercase;">Contact Number</label>
+          <div style="font-size: 18px; font-weight: 700; color: #333; margin-top: 5px; border-bottom: 1px solid #eee; padding-bottom: 10px;">${customer.phone}</div>
+        </div>
+
+        <div style="margin-bottom: 40px;">
+          <label style="font-size: 10px; font-weight: 900; color: #999; text-transform: uppercase;">Registered Location</label>
+          <div style="font-size: 16px; font-weight: 600; color: #444; margin-top: 5px; line-height: 1.5;">${customer.address || 'Not Provided'}</div>
+        </div>
+
+        <div style="border-top: 1px dashed #ccc; padding-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <p style="font-size: 8px; font-weight: 900; color: #aaa; text-transform: uppercase;">Record ID</p>
+            <p style="font-size: 9px; font-weight: 700; color: #000;">${customer.id}</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="font-size: 8px; font-weight: 900; color: #aaa; text-transform: uppercase;">Export Date</p>
+            <p style="font-size: 9px; font-weight: 700; color: #000;">${new Date().toLocaleString()}</p>
+          </div>
+        </div>
+        
+        <div style="margin-top: 60px; text-align: center; border-top: 2px solid #000; padding-top: 20px;">
+          <p style="font-size: 9px; font-weight: 900; color: #000; letter-spacing: 2px;">WARRICK INTELLIGENCE SYSTEM</p>
+        </div>
+      </div>
+    `;
+
+    const opt = {
+      margin: 10,
+      filename: `Profile_${customer.name.replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // @ts-ignore
+    window.html2pdf().from(element).set(opt).save();
+  };
+
+  const handleExportAll = () => {
+    if (!isAdmin) return;
+    if (customers.length === 0) return alert("No records to export.");
+
+    const element = document.createElement('div');
+    element.style.padding = '40px';
+    element.style.fontFamily = 'Inter, sans-serif';
+    element.innerHTML = `
+      <div style="margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+        <h1 style="font-size: 24px; font-weight: 900; margin: 0;">WARRICK CUSTOMER INDEX</h1>
+        <p style="font-size: 10px; color: #666; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;">Database Export • ${new Date().toLocaleDateString()}</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background: #f4f4f4;">
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">NAME</th>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">PHONE</th>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">ADDRESS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${customers.map(c => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 10px; font-weight: 700;">${c.name}</td>
+              <td style="border: 1px solid #ddd; padding: 10px;">${c.phone}</td>
+              <td style="border: 1px solid #ddd; padding: 10px;">${c.address || 'N/A'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top: 30px; text-align: center; color: #999; font-size: 9px; font-weight: 800;">
+        GENERATED BY WARRICK INTELLIGENCE SYSTEM
+      </div>
+    `;
+
+    const opt = {
+      margin: 10,
+      filename: `Warrick_Customers_All_${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // @ts-ignore
+    window.html2pdf().from(element).set(opt).save();
+  };
 
   return (
     <div className="w-full space-y-12 animate-in slide-in-from-bottom-4 duration-700 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="text-center md:text-left">
-          <h1 className="text-[30px] font-black tracking-tighter text-[#1F2937] leading-none mb-4">
-            WARRICK<span className="text-black">.</span>
+          <h1 className="text-[30px] font-black tracking-tighter text-[#1F2937] dark:text-white leading-none mb-4">
+            WARRICK<span className="text-black dark:text-blue-500">.</span>
           </h1>
           <div className="relative inline-block group">
-             <div className="absolute -top-3 left-0 w-8 h-[2px] bg-gradient-to-r from-black to-transparent rounded-full mb-2"></div>
-             <div className="bg-white/60 ios-blur px-4 py-1.5 rounded-full ios-shadow border border-white/40 mt-1">
-                <p className="text-[10px] font-black text-[#4B5563] uppercase tracking-[0.2em]">
+             <div className="bg-white/60 dark:bg-white/5 px-4 py-1.5 rounded-full border border-white/40 mt-1 shadow-sm">
+                <p className="text-[10px] font-black text-[#4B5563] dark:text-gray-400 uppercase tracking-[0.2em]">
                   POWERED BY ARVIN
                 </p>
              </div>
           </div>
         </div>
 
-        <button 
-          onClick={() => {
-            if (isAdding) resetForm();
-            else setIsAdding(true);
-          }}
-          className={`neu-button px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest flex items-center space-x-3 transition-all ${
-            isAdding ? 'neu-pressed text-gray-400' : 'text-gray-700'
-          }`}
-        >
-          {isAdding ? 'Dismiss' : 'New Profile'}
-        </button>
+        <div className="flex items-center space-x-4">
+          {isAdmin && (
+            <button 
+              onClick={handleExportAll}
+              className="tactile-btn px-8 py-4 bg-white text-blue-600 border-none"
+            >
+              Export All
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              if (isAdding) resetForm();
+              else setIsAdding(true);
+            }}
+            className={`tactile-btn px-10 py-4 ${
+              isAdding ? 'bg-gray-100 text-gray-400' : ''
+            }`}
+          >
+            {isAdding ? 'Dismiss' : 'New Profile'}
+          </button>
+        </div>
       </div>
 
       {isAdding && (
         <div className="flex justify-center w-full animate-in fade-in zoom-in-95 duration-500">
           <form 
             onSubmit={handleAction} 
-            className="bg-white p-8 md:p-12 rounded-ios-lg ios-shadow border border-white/20 w-full max-w-3xl"
+            className="clay-card p-8 md:p-12 w-full max-w-3xl"
           >
             <div className="flex items-center space-x-4 mb-10">
-              <div className="w-1.5 h-8 bg-black rounded-full"></div>
-              <h3 className="text-xl font-black tracking-tight text-gray-800 uppercase text-[14px]">
-                {editingId ? 'Edit Profile' : 'Profile Registration'}
-              </h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-ios-gray ml-2 uppercase tracking-widest block mb-1">FULL NAME</label>
-                <input
-                  required
-                  type="text"
-                  placeholder=""
-                  className="w-full bg-ios-bg/50 border-none rounded-full px-6 py-4 focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all font-bold text-gray-800 placeholder:text-gray-400/30 text-sm"
-                  value={newCustomer.name}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                />
+                <label className="text-[10px] font-black text-gray-500 ml-4 uppercase tracking-widest">FULL NAME</label>
+                <div className="sunken-well px-8 py-5">
+                  <input
+                    required
+                    type="text"
+                    className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                    value={newCustomer.name}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-ios-gray ml-2 uppercase tracking-widest block mb-1">CONTACT</label>
-                <input
-                  required
-                  type="tel"
-                  placeholder="+880"
-                  className="w-full bg-ios-bg/50 border-none rounded-full px-6 py-4 focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all font-black text-gray-800 placeholder:text-gray-400/30 text-sm"
-                  value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                />
+                <label className="text-[10px] font-black text-gray-500 ml-4 uppercase tracking-widest">CONTACT</label>
+                <div className="sunken-well px-8 py-5">
+                  <input
+                    required
+                    type="tel"
+                    className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                    value={newCustomer.phone}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-ios-gray ml-2 uppercase tracking-widest block mb-1">ADDRESS</label>
-                <textarea
-                  placeholder=""
-                  className="w-full bg-ios-bg/50 border-none rounded-full px-8 py-4 focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all font-medium text-gray-800 min-h-[56px] h-[56px] resize-none placeholder:text-gray-400/30 text-sm leading-normal flex items-center"
-                  value={newCustomer.address}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                />
+                <label className="text-[10px] font-black text-gray-500 ml-4 uppercase tracking-widest">LOCATION</label>
+                <div className="sunken-well px-8 py-5">
+                  <input
+                    type="text"
+                    className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                    placeholder="Enter city or full address"
+                    value={newCustomer.address}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
             <div className="mt-10 flex justify-end space-x-4">
-              {editingId && (
-                <button 
-                  type="button"
-                  onClick={resetForm}
-                  className="px-8 py-4 bg-ios-bg text-gray-500 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:text-black transition-all active:scale-95"
-                >
-                  Cancel
-                </button>
-              )}
               <button 
                 type="submit" 
-                className="px-10 py-4 bg-black text-white rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-gray-800 transition-all active:scale-95 ios-shadow"
+                className="tactile-btn bg-black text-white px-10 py-4"
               >
                 {editingId ? 'Update Profile' : 'Commit Profile'}
               </button>
@@ -172,88 +292,61 @@ const Customers: React.FC<CustomersProps> = ({ customers, onAdd, onUpdate, onDel
       )}
 
       <div className="space-y-6">
-        <div className="relative w-full flex justify-center py-2">
-          <div className="w-full bg-ios-bg border border-white/40 p-1.5 rounded-full shadow-[6px_6px_12px_#b8b9be,-6px_-6px_12px_#ffffff] flex items-center group">
-            <div className="flex-1 bg-ios-bg rounded-full px-6 py-3 shadow-[inset_3px_3px_6px_#b8b9be,inset_-3px_-3px_6px_#ffffff] transition-all focus-within:shadow-[inset_4px_4px_8px_#a8a9ae,inset_-4px_-4px_8px_#ffffff]">
-              <input
-                type="text"
-                placeholder="SEARCH BY PHONE OR NAME..."
-                className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold text-gray-900 placeholder:text-ios-gray/40 text-[11px] tracking-wider uppercase h-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="w-12 h-12 flex items-center justify-center text-ios-gray/60 group-focus-within:text-black transition-all bg-white rounded-full ml-1.5 shadow-sm border border-white/20">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-ios-lg overflow-hidden ios-shadow border border-white/40">
-          <div className="divide-y divide-gray-300/20">
-            {filteredCustomers.length === 0 ? (
-              <div className="p-24 text-center bg-white">
-                <div className="neu-circle w-20 h-20 mx-auto mb-6 opacity-40 grayscale">
-                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-                  </svg>
+        <div className="clay-card overflow-hidden">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {!isAdmin ? (
+              <div className="p-24 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full tactile-btn !p-0 bg-red-50 dark:bg-red-900/10 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-red-500/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m4-13a4 4 0 014 4v2m0 0a4 4 0 01-4 4H8a4 4 0 01-4-4V9a4 4 0 014-4h.172a4 4 0 012.828 1.172L12 7.172z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-400 font-black italic tracking-widest text-xs uppercase opacity-40">
+                    ACCESS RESTRICTED • ADMIN ONLY DATA
+                  </p>
                 </div>
-                <p className="text-gray-400 font-black italic tracking-widest text-xs uppercase">
-                  {searchQuery ? `NO MATCHING PROFILE FOR "${searchQuery}"` : 'NO RECORDS REGISTERED'}
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="p-24 text-center">
+                <p className="text-gray-400 font-black italic tracking-widest text-xs uppercase opacity-40">
+                  {globalSearchQuery ? `NO MATCHES FOR "${globalSearchQuery}"` : 'NO RECORDS FOUND'}
                 </p>
-                {searchQuery && (
-                  <button 
-                    onClick={() => {
-                      setNewCustomer({...newCustomer, phone: searchQuery});
-                      setIsAdding(true);
-                    }}
-                    className="mt-6 text-black font-black text-[10px] uppercase tracking-widest border-b-2 border-black/10 hover:border-black transition-all pb-1"
-                  >
-                    Create Profile with this number?
-                  </button>
-                )}
               </div>
             ) : (
               filteredCustomers.map((customer) => (
-                <div key={customer.id} className="p-10 flex items-center justify-between hover:bg-white/10 transition-all group animate-in fade-in slide-in-from-left-4 duration-300">
+                <div key={customer.id} className="p-10 flex items-center justify-between bg-[#E8F5E9] dark:bg-[#1B2C1E] hover:opacity-90 transition-all cursor-pointer group">
                   <div className="flex items-center space-x-8">
-                    <div className="neu-circle w-16 h-16 bg-white/40 shadow-sm border border-white/20">
-                      <span className="font-black text-2xl text-gray-500">{customer.name.charAt(0)}</span>
+                    <div className="w-16 h-16 rounded-full tactile-btn !p-0 bg-[#F8F9FA] dark:bg-[#1A1C1E]">
+                      <span className="font-black text-2xl text-gray-400">{customer.name.charAt(0)}</span>
                     </div>
                     <div>
-                      <h4 className="font-black text-2xl text-gray-800 tracking-tight">{customer.name}</h4>
-                      <div className="flex items-center space-x-3 mt-1">
-                        <span className="text-xs font-bold text-gray-500 tracking-widest uppercase">{customer.phone}</span>
+                      <h4 className="font-black text-2xl text-gray-800 dark:text-gray-200 tracking-tight">{customer.name}</h4>
+                      <div className="flex items-center space-x-4">
+                        <p className="text-xs font-bold text-gray-400 tracking-widest uppercase">{customer.phone}</p>
+                        {customer.address && (
+                          <>
+                            <span className="text-gray-300 text-[10px]">•</span>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate max-w-[200px]">{customer.address}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <div className="text-right hidden lg:block mr-6">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 opacity-60">Registered Coordinates</p>
-                      <p className="text-sm text-gray-600 font-bold max-w-[200px] line-clamp-1">{customer.address || 'NO ADDRESS SPECIFIED'}</p>
-                    </div>
-                    <div className="flex items-center space-x-2 transition-opacity">
-                      <button 
-                        onClick={() => handleEdit(customer)}
-                        className="p-3 rounded-full bg-blue-50 text-blue-400 hover:text-blue-600 hover:bg-blue-100 transition-all flex items-center justify-center shadow-sm"
-                        title="Edit Profile"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={() => onDelete(customer.id)}
-                        className="p-3 rounded-full bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 transition-all flex items-center justify-center shadow-sm"
-                        title="Delete Profile"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); exportSingleCustomer(customer); }} 
+                          className="tactile-btn !p-3 text-green-600"
+                          title="Export Profile"
+                        >
+                          Export
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleEdit(customer); }} className="tactile-btn !p-3 text-blue-500">Edit</button>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(customer.id); }} className="tactile-btn !p-3 text-red-500">Delete</button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

@@ -4,177 +4,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WARRICK | Premium Invoicing</title>
+  <title>WARRICK | Soft-Clay Tactile UI</title>
+  <!-- Tailwind via CDN for easy local usage -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2pdf for offline-capable PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            sans: ['Inter', '-apple-system', 'sans-serif'],
           },
           borderRadius: {
-            'ios': '24px',
-            'ios-lg': '40px',
-            'neu': '50%'
-          },
-          colors: {
-            ios: {
-              bg: '#E0E5EC',
-              card: '#E0E5EC',
-              blue: '#2D3436',
-              gray: '#636E72',
-              separator: '#B2BEC3'
-            }
+            'clay': '16px',
+            'pill': '100px',
           }
         }
       }
     }
   </script>
   <style>
+    :root {
+      --clay-bg: #FFFFFF;
+      --clay-surface: #F8F9FA;
+      --clay-shadow: rgba(0, 0, 0, 0.08);
+      --clay-highlight: #FFFFFF;
+    }
+
+    .dark {
+      --clay-bg: #1A1C1E;
+      --clay-surface: #242629;
+      --clay-shadow: rgba(0, 0, 0, 0.4);
+      --clay-highlight: rgba(255, 255, 255, 0.05);
+    }
+
     body {
-      background-color: #E0E5EC; 
-      color: #2D3436;
+      background-color: #F0F2F5;
+      color: #1A1A1A;
+      min-height: 100vh;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Hide number input spinners */
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    input[type=number] {
-      -moz-appearance: textfield;
+    .dark body {
+      background-color: #0F1012;
+      color: #F0F0F0;
     }
 
-    .neu-flat {
-      background: #E0E5EC;
-      box-shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+    /* Tactile Clay Surface */
+    .clay-card {
+      background: var(--clay-bg);
+      border-radius: 24px;
+      box-shadow: 
+        10px 10px 20px var(--clay-shadow), 
+        -10px -10px 20px var(--clay-highlight);
+      border: 1px solid rgba(0,0,0,0.02);
     }
 
-    .neu-flat-blue {
-      background: #e3f2fd;
-      box-shadow: 9px 9px 16px rgba(187, 222, 251, 0.8), -9px -9px 16px rgba(255, 255, 255, 0.9);
+    /* Pilled Tactile Button */
+    .tactile-btn {
+      background: var(--clay-bg);
+      border-radius: 100px;
+      padding: 12px 24px;
+      font-weight: 700;
+      font-size: 14px;
+      color: #1A1A1A;
+      box-shadow: 
+        4px 4px 10px var(--clay-shadow), 
+        -4px -4px 10px var(--clay-highlight);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0,0,0,0.01);
     }
 
-    .neu-flat-green {
-      background: #f1f8e9;
-      box-shadow: 9px 9px 16px rgba(220, 237, 200, 0.8), -9px -9px 16px rgba(255, 255, 255, 0.9);
+    .dark .tactile-btn {
+      color: #FFFFFF;
     }
 
-    .neu-flat-red {
-      background: #ffebee;
-      box-shadow: 9px 9px 16px rgba(255, 205, 210, 0.8), -9px -9px 16px rgba(255, 255, 255, 0.9);
-    }
-    
-    .neu-pressed {
-      background: #E0E5EC;
-      box-shadow: inset 6px 6px 12px #b8b9be, inset -6px -6px 12px #ffffff;
-    }
-
-    .neu-button {
-      background: #E0E5EC;
-      box-shadow: 6px 6px 12px #b8b9be, -6px -6px 12px #ffffff;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .neu-button:active {
-      box-shadow: inset 4px 4px 8px #b8b9be, inset -4px -4px 8px #ffffff;
+    .tactile-btn:active {
+      box-shadow: 
+        inset 4px 4px 8px var(--clay-shadow), 
+        inset -4px -4px 8px var(--clay-highlight);
       transform: scale(0.98);
     }
 
-    .neu-circle {
-      width: 60px;
-      height: 60px;
+    /* Sunken Well for Inputs */
+    .sunken-well {
+      background: #F0F2F5;
+      border-radius: 100px;
+      box-shadow: 
+        inset 4px 4px 8px rgba(0,0,0,0.05), 
+        inset -4px -4px 8px #FFFFFF;
+      border: none;
+    }
+
+    .dark .sunken-well {
+      background: #0F1012;
+      box-shadow: 
+        inset 4px 4px 8px rgba(0,0,0,0.3), 
+        inset -4px -4px 8px rgba(255,255,255,0.02);
+    }
+
+    /* Mechanical Toggle */
+    .mech-toggle {
+      width: 54px;
+      height: 28px;
+      background: #E5E7EB;
+      border-radius: 100px;
+      position: relative;
+      cursor: pointer;
+      box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+      transition: background 0.3s;
+    }
+
+    .mech-toggle.active {
+      background: #1A1A1A;
+    }
+
+    .mech-knob {
+      width: 22px;
+      height: 22px;
+      background: white;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #E0E5EC;
-      box-shadow: 7px 7px 14px #b8b9be, -7px -7px 14px #ffffff;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.3s;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     }
 
-    .neu-circle-blue {
-      width: 60px;
-      height: 60px;
+    .mech-toggle.active .mech-knob {
+      transform: translateX(26px);
+    }
+
+    /* Status Pill Dots */
+    .status-dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e3f2fd;
-      box-shadow: 5px 5px 10px rgba(187, 222, 251, 0.6), -5px -5px 10px rgba(255, 255, 255, 0.8);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
-    .neu-circle-green {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f1f8e9;
-      box-shadow: 5px 5px 10px rgba(220, 237, 200, 0.6), -5px -5px 10px rgba(255, 255, 255, 0.8);
+    @keyframes press {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.95); }
+      100% { transform: scale(1); }
     }
 
-    .neu-circle-red {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #ffebee;
-      box-shadow: 5px 5px 10px rgba(255, 205, 210, 0.6), -5px -5px 10px rgba(255, 255, 255, 0.8);
-    }
-
-    input, textarea, select {
-      background: #E0E5EC !important;
-      box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff !important;
-      border: none !important;
-    }
-
-    .ios-blur {
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-
-    @page {
-      size: A4;
-      margin: 0;
-    }
-
-    @media print {
-      .no-print { display: none !important; }
-      body { background: white !important; margin: 0; padding: 0; }
-      #root { margin: 0; padding: 0; }
-      * { 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-      }
-      .invoice-container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        max-width: none !important;
-        height: 297mm !important;
-        page-break-after: avoid;
-        page-break-before: avoid;
-      }
+    .press-anim:active {
+      animation: press 0.2s ease;
     }
   </style>
 <script type="importmap">
 {
   "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0"
   }
 }
 </script>
@@ -182,6 +174,7 @@
 </head>
 <body>
   <div id="root"></div>
+  <script type="module" src="index.tsx"></script>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>
