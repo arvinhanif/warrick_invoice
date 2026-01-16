@@ -70,8 +70,8 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({
   }, [editId, invoices, nextId]);
 
   const handleSave = () => {
-    if (!invoice.customer?.name) return alert("Select or enter client name");
-    if (!invoice.notes) return alert("Enter Mobile Number");
+    if (!invoice.customer?.name) return alert("Client name is required.");
+    if (!invoice.notes) return alert("Mobile Number is required.");
 
     const phoneNormalized = invoice.notes.replace(/\s/g, '');
     const exists = customers.find(c => c.phone.replace(/\s/g, '') === phoneNormalized);
@@ -135,70 +135,76 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({
     });
   };
 
+  const calculateSubtotal = () => {
+    return invoice.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
+  };
+
   return (
-    <div className="max-w-[700px] mx-auto py-8 animate-in slide-in-from-bottom-8 duration-700">
-      <div className="clay-card overflow-hidden flex flex-col min-h-[480px]">
+    <div className="max-w-[1000px] mx-auto py-4 animate-desktop">
+      <div className="clay-card overflow-hidden flex flex-col min-h-[600px]">
         
-        <div className="p-10 pb-0 border-b border-gray-50 dark:border-gray-800">
+        {/* Header Section */}
+        <div className="p-10 pb-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-white/5">
           <div className="flex items-center justify-between mb-8">
-             <h2 className="text-2xl font-black tracking-tighter text-[#1A1A1A] dark:text-white uppercase">INVOICE ENTRY</h2>
-             <div className="flex items-center space-x-3">
-               <button onClick={() => navigate('/dashboard')} className="w-10 h-10 tactile-btn !p-0">✕</button>
+             <div>
+                <h2 className="text-3xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Entry Station</h2>
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">Protocol Warrick-X</p>
+             </div>
+             <div className="flex items-center space-x-4">
+               <div className="text-right hidden sm:block">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Document ID</p>
+                  <p className="font-black text-gray-800 dark:text-white">{invoice.invoiceNumber}</p>
+               </div>
+               <button onClick={() => navigate('/dashboard')} className="w-12 h-12 tactile-btn !p-0 !rounded-2xl hover:bg-rose-50 hover:text-rose-500">✕</button>
              </div>
           </div>
           
-          <div className="flex items-end space-x-3 mb-8">
+          <div className="flex flex-wrap items-center gap-4">
             <button 
               onClick={() => setActiveTab('details')}
-              className={`tactile-btn px-10 h-[54px] ${activeTab === 'details' ? 'bg-[#1A1A1A] text-white' : ''}`}
+              className={`tactile-btn px-12 h-[58px] transition-all ${activeTab === 'details' ? 'bg-[#1A1A1A] text-white !shadow-inner' : ''}`}
             >
-              CUSTOMER DETAILS
+              CLIENT INFO
             </button>
             <button 
               onClick={() => setActiveTab('items')}
-              className={`tactile-btn px-10 h-[54px] ${activeTab === 'items' ? 'bg-[#1A1A1A] text-white' : ''}`}
+              className={`tactile-btn px-12 h-[58px] transition-all ${activeTab === 'items' ? 'bg-[#1A1A1A] text-white !shadow-inner' : ''}`}
             >
-              PRODUCT DETAILES
+              ITEMIZED LIST
             </button>
-            
-            <div className="flex-1 space-y-1.5">
-              <label className="text-[10px] font-black text-gray-400 ml-4 uppercase tracking-widest leading-none">Entry Serial</label>
-              <div className="sunken-well px-6 h-[54px] flex items-center">
-                <input
-                  type="text"
-                  readOnly
-                  className="bg-transparent w-full outline-none font-bold text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                  value={invoice.invoiceNumber}
-                />
-              </div>
+            <div className="flex-1"></div>
+            <div className="flex items-center space-x-3 bg-white dark:bg-[#242629] p-2 rounded-full shadow-sm px-6 h-[58px]">
+               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Running Total:</span>
+               <span className="font-black text-xl text-gray-900 dark:text-white">৳{calculateSubtotal().toLocaleString()}</span>
             </div>
           </div>
         </div>
 
-        <div className="px-10 py-4 space-y-2 flex-1">
+        {/* Content Section */}
+        <div className="px-10 py-10 flex-1">
           {activeTab === 'details' ? (
-            <div className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-1 space-y-1">
-                  <label className="text-[11px] font-black text-gray-400 ml-4 uppercase tracking-widest">Client Name</label>
+            <div className="space-y-8 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-gray-500 ml-5 uppercase tracking-widest">Client Identity (Full Name)</label>
                   <div className="sunken-well px-8 py-5">
                     <input
                       type="text"
-                      placeholder="Enter full name"
-                      className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                      placeholder="e.g. Arvin Hanif"
+                      className="bg-transparent w-full outline-none font-bold text-lg text-gray-800 dark:text-white"
                       value={invoice.customer?.name || ''}
                       onChange={(e) => setInvoice({...invoice, customer: {...invoice.customer!, name: e.target.value}})}
                     />
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-1">
-                  <label className="text-[11px] font-black text-gray-400 ml-4 uppercase tracking-widest">Mobile Number</label>
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-gray-500 ml-5 uppercase tracking-widest">Contact Protocol (Mobile)</label>
                   <div className="sunken-well px-8 py-5">
                     <input
                       type="tel"
-                      placeholder="Enter Mobile Number"
-                      className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                      placeholder="+880 1XXX XXXXXX"
+                      className="bg-transparent w-full outline-none font-bold text-lg text-gray-800 dark:text-white"
                       value={invoice.notes || ''}
                       onChange={(e) => handleMobileChange(e.target.value)}
                     />
@@ -206,13 +212,13 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black text-gray-400 ml-4 uppercase tracking-widest">Location</label>
+              <div className="space-y-3">
+                <label className="text-[11px] font-black text-gray-500 ml-5 uppercase tracking-widest">Deployment Location (Address)</label>
                 <div className="sunken-well px-8 py-5">
                   <input
                     type="text"
-                    placeholder="Enter city or full address"
-                    className="bg-transparent w-full outline-none font-bold text-gray-800 dark:text-white"
+                    placeholder="Physical address or City"
+                    className="bg-transparent w-full outline-none font-bold text-lg text-gray-800 dark:text-white"
                     value={invoice.customer?.address || ''}
                     onChange={(e) => setInvoice({...invoice, customer: {...invoice.customer!, address: e.target.value}})}
                   />
@@ -220,55 +226,69 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-3 pt-2">
-               {invoice.items?.map((item, idx) => (
-                <div key={item.id} className="flex gap-3 items-center animate-in slide-in-from-left-4 duration-300">
-                  <div className="flex-1 sunken-well px-6 py-4">
-                     <input 
-                       type="text" 
-                       className="bg-transparent w-full outline-none font-bold uppercase placeholder:normal-case" 
-                       placeholder="Product Name" 
-                       value={item.name} 
-                       onChange={e => updateItem(item.id, 'name', e.target.value)} 
-                     />
+            <div className="space-y-4 pt-2">
+               <div className="hidden md:flex px-6 mb-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                 <div className="flex-1">Description</div>
+                 <div className="w-40 text-center">Unit Price</div>
+                 <div className="w-24 text-center">Qty</div>
+                 <div className="w-32 text-right pr-14">Extended</div>
+               </div>
+               
+               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {invoice.items?.map((item, idx) => (
+                  <div key={item.id} className="flex flex-col md:flex-row gap-4 items-center animate-desktop group">
+                    <div className="flex-1 w-full sunken-well px-7 py-5">
+                       <input 
+                         type="text" 
+                         className="bg-transparent w-full outline-none font-bold uppercase placeholder:normal-case" 
+                         placeholder="Item description" 
+                         value={item.name} 
+                         onChange={e => updateItem(item.id, 'name', e.target.value)} 
+                       />
+                    </div>
+                    <div className="w-full md:w-40 sunken-well px-6 py-5 text-center">
+                       <input 
+                         type="number" 
+                         className="bg-transparent w-full outline-none font-black text-center" 
+                         placeholder="Price"
+                         value={item.price || ''} 
+                         onChange={e => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} 
+                       />
+                    </div>
+                    <div className="w-full md:w-24 sunken-well px-4 py-5 text-center">
+                       <input 
+                         type="number" 
+                         className="bg-transparent w-full outline-none font-black text-center" 
+                         value={item.quantity} 
+                         onChange={e => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)} 
+                       />
+                    </div>
+                    <div className="hidden md:block w-32 text-right font-black text-indigo-500 px-4">
+                       ৳{(item.price * item.quantity).toLocaleString()}
+                    </div>
+                    <button 
+                      onClick={() => setInvoice(p => ({...p, items: p.items?.filter(x => x.id !== item.id)}))} 
+                      className="w-12 h-12 tactile-btn !p-0 text-rose-500 rounded-2xl hover:bg-rose-50"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <div className="w-28 sunken-well px-4 py-4 text-center">
-                     <input 
-                       type="number" 
-                       className="bg-transparent w-full outline-none font-black text-center" 
-                       placeholder="Price"
-                       value={item.price || ''} 
-                       onChange={e => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} 
-                     />
-                  </div>
-                  <div className="w-20 sunken-well px-2 py-4 text-center">
-                     <input 
-                       type="number" 
-                       className="bg-transparent w-full outline-none font-black text-center" 
-                       value={item.quantity} 
-                       onChange={e => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)} 
-                     />
-                  </div>
-                  <button 
-                    onClick={() => setInvoice(p => ({...p, items: p.items?.filter(x => x.id !== item.id)}))} 
-                    className="w-11 h-11 tactile-btn !p-0 text-red-500 rounded-full"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                ))}
+               </div>
+
               <button 
                 onClick={() => setInvoice(prev => ({...prev, items: [...(prev.items || []), {id: Date.now().toString(), name: '', quantity: 1, price: 0}]}))} 
-                className="w-full tactile-btn py-5 border-dashed border-2 opacity-60 hover:opacity-100 transition-opacity"
+                className="w-full tactile-btn py-6 border-dashed border-2 bg-gray-50/50 dark:bg-white/5 opacity-80 hover:opacity-100 transition-all text-gray-500"
               >
-                + ADD NEW ITEM ROW
+                + APPEND NEW ENTRY ROW
               </button>
             </div>
           )}
         </div>
 
-        <div className="p-8 pt-1 bg-gray-50 dark:bg-black/20 flex flex-col space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Footer Actions */}
+        <div className="p-10 bg-gray-50 dark:bg-black/20 flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-4">
               <div 
                 className={`mech-toggle ${invoice.status === 'Paid' ? 'active' : ''}`}
@@ -276,14 +296,22 @@ const CreateInvoice: React.FC<CreateInvoiceProps> = ({
               >
                 <div className="mech-knob"></div>
               </div>
-              <span className="text-xs font-black uppercase tracking-widest text-gray-500">Paid Status</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">Settlement Received</span>
             </div>
-            <button 
-              onClick={handleSave}
-              className="tactile-btn bg-[#1A1A1A] text-white px-12 py-5 shadow-2xl"
-            >
-              {editId ? 'UPDATE RECORD' : 'SAVE INVOICE'}
-            </button>
+          </div>
+          <div className="flex items-center space-x-4">
+             <button 
+               onClick={() => navigate('/dashboard')}
+               className="tactile-btn px-10 py-5 text-gray-400"
+             >
+               DISCARD
+             </button>
+             <button 
+               onClick={handleSave}
+               className="tactile-btn bg-[#1A1A1A] text-white px-16 py-5 shadow-2xl hover:scale-105"
+             >
+               {editId ? 'COMMIT CHANGES' : 'EXECUTE SAVE'}
+             </button>
           </div>
         </div>
       </div>
